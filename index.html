@@ -59,17 +59,17 @@ nav a.on{color:var(--cream);background:#3b3850}
 
 <script>
 /* ===== Réglages à modifier ===== */
-var WHATSAPP = "243834989934";          // numéro WhatsApp (format international, sans +)
-var SHEET_CSV_URL = "";                  // lien CSV du Google Sheet publié (laisser vide au début)
-var PHOTOS = ["aire-de-jeux.jpg","jardin.jpg","batiment.jpg","fontaine.jpg","jardin2.jpg"]; // photos du lieu
+var WHATSAPP = "243834989934";
+var SHEET_CSV_URL = "";
 var PHOTOS = [];
 (function(){
   try{var c=JSON.parse(localStorage.getItem("gk_photos")||"null"); if(c)PHOTOS=c;}catch(e){}
   fetch("https://api.github.com/repos/helckilunga5-wq/kingakati-photos/contents").then(function(r){return r.json()}).then(function(l){
-    var p=l.filter(function(f){return /\.(jpe?g|png|webp)$/i.test(f.name)}).map(function(f){return f.name});
+    var p=l.filter(function(f){return /\.(jpe?g|png|webp)$/i.test(f.name)&&!/^apple-touch-icon/i.test(f.name)}).map(function(f){return f.name});
     if(p.length){PHOTOS=p; try{localStorage.setItem("gk_photos",JSON.stringify(p))}catch(e){} render();}
   }).catch(function(){});
-})();/* ================================= */
+})();
+/* ================================= */
 
 var FALLBACK = [{cat:"Chambre",name:"Chambre climatisée",desc:"Chambre climatisée avec petit déjeuner.",usd:"60",fc:"145000",photo:"",ok:true}];
 var NAV = [["Accueil","🏠"],["Hôtel","🛏️"],["Restaurant","🍽️"],["Réserver","📅"],["Demandes","📋"]];
@@ -203,7 +203,7 @@ function render(){
   document.getElementById("nav").innerHTML=NAV.map(function(n){return '<a href="#" class="'+(state.page===n[0]?"on":"")+'" onclick="go(\''+n[0]+'\');return false"><span class="e">'+n[1]+'</span>'+n[0]+'</a>'}).join("");
   if(state.page==="Réserver")upd();
 }
-/* ---------- Icône (dessinée par le navigateur) ---------- */
+/* ---------- Icône ---------- */
 (function(){
   try{
     var c=document.createElement("canvas");c.width=c.height=180;var x=c.getContext("2d"),k=180/108;
@@ -214,7 +214,8 @@ function render(){
       x.beginPath();p.forEach(function(q,i){i?x.lineTo(q[0]*k,q[1]*k):x.moveTo(q[0]*k,q[1]*k)});x.closePath();x.fill()});
     var u=c.toDataURL("image/png");
     ["apple-touch-icon","icon"].forEach(function(r){var l=document.createElement("link");l.rel=r;l.href=u;document.head.appendChild(l)});
-document.querySelectorAll('link[rel="apple-touch-icon"]')…   }catch(e){}
+  document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function(l){l.href="apple-touch-icon.png"});
+  }catch(e){}
 })();
 render(); refresh();
 </script>
