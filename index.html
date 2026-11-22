@@ -62,7 +62,14 @@ nav a.on{color:var(--cream);background:#3b3850}
 var WHATSAPP = "243834989934";          // numéro WhatsApp (format international, sans +)
 var SHEET_CSV_URL = "";                  // lien CSV du Google Sheet publié (laisser vide au début)
 var PHOTOS = ["aire-de-jeux.jpg","jardin.jpg","batiment.jpg","fontaine.jpg","jardin2.jpg"]; // photos du lieu
-/* ================================= */
+var PHOTOS = [];
+(function(){
+  try{var c=JSON.parse(localStorage.getItem("gk_photos")||"null"); if(c)PHOTOS=c;}catch(e){}
+  fetch("https://api.github.com/repos/helckilunga5-wq/kingakati-photos/contents").then(function(r){return r.json()}).then(function(l){
+    var p=l.filter(function(f){return /\.(jpe?g|png|webp)$/i.test(f.name)}).map(function(f){return f.name});
+    if(p.length){PHOTOS=p; try{localStorage.setItem("gk_photos",JSON.stringify(p))}catch(e){} render();}
+  }).catch(function(){});
+})();/* ================================= */
 
 var FALLBACK = [{cat:"Chambre",name:"Chambre climatisée",desc:"Chambre climatisée avec petit déjeuner.",usd:"60",fc:"145000",photo:"",ok:true}];
 var NAV = [["Accueil","🏠"],["Hôtel","🛏️"],["Restaurant","🍽️"],["Réserver","📅"],["Demandes","📋"]];
