@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guest Kingakati</title>
+<meta name="theme-color" content="#11110E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Guest Kingakati">
+<style>
+:root{--gold:#E1B85B;--dark:#11110E;--panel:#1D1C17;--cream:#F8F5EC;--line:#3a382f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--dark);color:var(--cream);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:calc(env(safe-area-inset-top) + 16px) 16px calc(86px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto;line-height:1.45}
+h1{margin:0;color:var(--gold);font-size:24px;letter-spacing:.5px}
+.tag{font-size:10px;letter-spacing:1px;margin-top:2px}
+h2{color:var(--gold);font-size:28px;margin:22px 0 4px;font-weight:600}
+h3{color:var(--gold);font-size:22px;margin:18px 0 8px;font-weight:600}
+p{margin:6px 0}
+.card{background:var(--panel);border-radius:18px;overflow:hidden;margin:14px 0}
+.card .body{padding:20px}
+.card h4{margin:0 0 8px;color:var(--gold);font-size:22px}
+.hero{background:var(--panel);border-radius:24px;padding:24px;margin-top:18px}
+.hero .kick{color:var(--gold);letter-spacing:.5px}
+.hero .big{font-size:32px;font-weight:700;line-height:1.1;margin:12px 0}
+.price{color:var(--gold);font-size:15px;margin-top:6px}
+button,.btn{font:inherit;border-radius:999px;padding:12px 22px;border:1px solid #777;background:transparent;color:var(--gold);cursor:pointer;margin-top:12px}
+button.gold{background:var(--gold);color:var(--dark);border-color:var(--gold);font-weight:600}
+button.full{width:100%}
+button:disabled{opacity:.4;cursor:not-allowed}
+.gallery{display:flex;gap:10px;overflow-x:auto;padding:4px 0 10px;scroll-snap-type:x mandatory}
+.gallery img{height:210px;width:auto;border-radius:14px;scroll-snap-align:start;flex:0 0 auto;background:var(--panel)}
+.photo{width:100%;height:170px;object-fit:cover;display:block}
+.row{display:flex;justify-content:space-between;gap:12px;padding:16px}
+.row .n{font-weight:700}.row .d{font-size:13px}
+label{display:block;color:var(--gold);margin:14px 0 4px;font-size:14px}
+input,textarea{width:100%;font:inherit;color:var(--cream);background:transparent;border:1px solid #888;border-radius:6px;padding:14px;outline:none}
+input:focus,textarea:focus{border-color:var(--gold)}
+input[type=date]{color-scheme:dark}
+.err{color:#f2b8b5;font-size:12px;margin-top:4px;min-height:0}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.chip{flex:0 0 auto;margin:0;padding:8px 14px;border:1px solid #888;color:var(--cream);font-size:14px}
+.chip.on{background:#4a4560;border-color:#4a4560}
+nav{position:fixed;left:0;right:0;bottom:0;background:#2a281f;display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);z-index:5}
+nav a{flex:1;text-align:center;color:#c9c5b8;font-size:10px;text-decoration:none;padding:4px 0;border-radius:14px}
+nav a .e{display:block;font-size:20px}
+nav a.on{color:var(--cream);background:#3b3850}
+.hist{background:var(--panel);border-radius:14px;padding:16px;margin:12px 0}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<h1>GUEST KINGAKATI</h1>
+<div class="tag">SÉJOURNEZ • SAVOUREZ • CÉLÉBREZ</div>
+<main id="app"></main>
+<nav id="nav"></nav>
+
+<script>
+/* ===== Réglages à modifier ===== */
+var WHATSAPP = "243834989934";          // numéro WhatsApp (format international, sans +)
+var SHEET_CSV_URL = "";                  // lien CSV du Google Sheet publié (laisser vide au début)
+var PHOTOS = ["aire-de-jeux.jpg","jardin.jpg","batiment.jpg","fontaine.jpg","jardin2.jpg"]; // photos du lieu
+/* ================================= */
+
+var FALLBACK = [{cat:"Chambre",name:"Chambre climatisée",desc:"Chambre climatisée avec petit déjeuner.",usd:"60",fc:"145000",photo:"",ok:true}];
+var NAV = [["Accueil","🏠"],["Hôtel","🛏️"],["Restaurant","🍽️"],["Réserver","📅"],["Demandes","📋"]];
+var SERVICES = ["Chambre","Restaurant","Mariage","Anniversaire","Autre événement","Loisirs"];
+var state = {page:"Accueil", service:"Chambre", catalog:load("gk_catalog")||FALLBACK, loading:false,
+  form:{name:"",phone:"",date:"",guests:"1",details:""}};
+
+function load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+
+function parseCsv(text){
+  text=text.replace(/^\uFEFF/,"");var rows=[],row=[],f="",q=false;
+  for(var i=0;i<text.length;i++){var c=text[i];
+    if(q){ if(c=='"'&&text[i+1]=='"'){f+='"';i++} else if(c=='"'){q=false} else f+=c }
+    else if(c=='"') q=true;
+    else if(c==","){row.push(f);f=""}
+    else if(c=="\n"||c=="\r"){ if(c=="\r"&&text[i+1]=="\n")i++; row.push(f);f=""; if(row.some(function(x){return x.trim()}))rows.push(row); row=[] }
+    else f+=c }
+  row.push(f); if(row.some(function(x){return x.trim()}))rows.push(row); return rows;
+}
+function parseCatalog(csv){
+  return parseCsv(csv).slice(1).map(function(r){
+    function col(i){return (r[i]||"").trim()}
+    if(!col(1))return null;
+    var d=col(6).toLowerCase();
+    return {cat:col(0),name:col(1),desc:col(2),usd:col(3),fc:col(4),photo:col(5),ok:["non","no","0","false","faux"].indexOf(d)<0};
+  }).filter(Boolean);
+}
+function fmtPrice(usd,fc){
+  var p=[],u=String(usd||"").trim().replace(/\$$/,"").trim();
+  if(u)p.push(u+" $");
+  var digits=String(fc||"").replace(/\D/g,"");
+  if(digits)p.push(Number(digits).toLocaleString("fr-FR")+" FC"); else if(String(fc||"").trim())p.push(String(fc).trim());
+  return p.length?p.join(" ou "):"Tarif à confirmer";
+}
+function refresh(){
+  if(!SHEET_CSV_URL)return;
+  state.loading=true;render();
+  fetch(SHEET_CSV_URL,{cache:"no-store"}).then(function(r){return r.text()}).then(function(t){
+    var items=parseCatalog(t); if(items.length){state.catalog=items;save("gk_catalog",items)}
+  }).catch(function(){}).then(function(){state.loading=false;render()});
+}
+function go(p,s){ if(s)state.service=s; state.page=p; render(); window.scrollTo(0,0); }
+
+/* ---------- Pages ---------- */
+function img(src,cls){ return src?'<img class="'+(cls||"")+'" src="'+esc(src)+'" alt="" loading="lazy" onerror="this.remove()">':""; }
+function refreshBtn(){ return SHEET_CSV_URL?'<button onclick="refresh()" '+(state.loading?"disabled":"")+'>'+(state.loading?"Mise à jour…":"Actualiser les tarifs")+'</button>':""; }
+function svcCard(title,desc,label,onclick,price,photo){
+  return '<div class="card">'+img(photo,"photo")+'<div class="body"><h4>'+esc(title)+'</h4>'+(desc?'<p>'+esc(desc)+'</p>':"")+(price?'<div class="price">'+esc(price)+'</div>':"")+'<button onclick="'+onclick+'">'+esc(label)+'</button></div></div>';
+}
+function home(){
+  var gal=PHOTOS.length?'<h3>Découvrez Kingakati</h3><div class="gallery">'+PHOTOS.map(function(p){return img(p)}).join("")+'</div>':"";
+  return '<div class="hero"><div class="kick">VOTRE DESTINATION DE DÉTENTE</div><div class="big">Bienvenue chez<br>Guest Kingakati</div><p>Un lieu pour séjourner, savourer, célébrer et se ressourcer.</p><button class="gold" onclick="go(\'Réserver\')">Réserver maintenant</button></div>'+gal+
+   svcCard("Hôtel","Découvrez nos chambres climatisées avec petit déjeuner.","Découvrir","go('Hôtel')")+
+   svcCard("Restaurant","Cuisine chinoise, européenne, africaine et italienne.","Découvrir","go('Restaurant')")+
+   svcCard("Événements","Mariages, anniversaires et autres manifestations : salle VIP et jardin pour vos célébrations et réunions.","Faire une demande","go('Réserver','Mariage')")+
+   svcCard("Loisirs","Jeux pour enfants, chaise de massage et plusieurs autres activités de détente.","Faire une demande","go('Réserver','Loisirs')");
+}
+function byCat(c){return state.catalog.filter(function(i){return i.cat.toLowerCase()===c.toLowerCase()&&i.ok})}
+function hotel(){
+  var rooms=byCat("Chambre");
+  return '<h2>Hôtel & chambres</h2><p>Disponibilités à confirmer auprès de l\'établissement.</p><p>Une salle d\'attente est à la disposition des visiteurs de nos clients.</p>'+refreshBtn()+
+   (rooms.length?"":'<p>Aucune chambre à afficher pour le moment.</p>')+
+   rooms.map(function(r){return svcCard(r.name,r.desc,"Réserver","go('Réserver','Chambre')",fmtPrice(r.usd,r.fc)+" la chambre",r.photo)}).join("")+
+   '<button class="gold full" onclick="go(\'Réserver\',\'Chambre\')">Demander une réservation</button>';
+}
+function menuRow(i){
+  return '<div class="card">'+img(i.photo,"photo")+'<div class="row"><div><div class="n">'+esc(i.name)+'</div>'+(i.desc?'<div class="d">'+esc(i.desc)+'</div>':"")+'</div><div class="price" style="margin:0;white-space:nowrap">'+esc(fmtPrice(i.usd,i.fc))+'</div></div></div>';
+}
+function resto(){
+  var dishes=byCat("Plat"),drinks=byCat("Boisson");
+  return '<h2>Restaurant</h2><p>Cuisine chinoise, européenne, africaine et italienne.</p><p>Les prix peuvent changer : confirmez auprès de l\'établissement.</p>'+refreshBtn()+
+   (dishes.length?'<h3>Plats</h3>'+dishes.map(menuRow).join(""):"")+
+   (drinks.length?'<h3>Boissons</h3>'+drinks.map(menuRow).join(""):"")+
+   (!dishes.length&&!drinks.length?'<p>Le menu sera bientôt disponible ici.</p>':"")+
+   '<button class="gold full" onclick="openWa(\'Bonjour Guest Kingakati, je voudrais consulter le menu.\')">Demander le menu sur WhatsApp</button>'+
+   '<button class="full" onclick="go(\'Réserver\',\'Restaurant\')">Réserver une table</button>';
+}
+function today(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function frDate(iso){var p=iso.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function booking(){
+  var f=state.form;
+  return '<h2>Demande de réservation</h2><p>Votre demande sera envoyée par WhatsApp. Elle sera confirmée après réponse de l\'établissement.</p>'+
+  '<label for="f_name">Nom complet</label><input id="f_name" autocomplete="name" value="'+esc(f.name)+'" oninput="upd()">'+
+  '<label for="f_phone">Téléphone</label><input id="f_phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+243 ..." value="'+esc(f.phone)+'" oninput="upd()"><div class="err" id="e_phone"></div>'+
+  '<label>Service</label><div class="chips">'+SERVICES.map(function(s){return '<button class="chip'+(state.service===s?" on":"")+'" onclick="state.service=\''+s.replace(/'/g,"\\'")+'\';render()">'+esc(s)+'</button>'}).join("")+'</div>'+
+  '<label for="f_date">Date souhaitée</label><input id="f_date" type="date" min="'+today()+'" value="'+esc(f.date)+'" oninput="upd()"><div class="err" id="e_date"></div>'+
+  '<label for="f_guests">Nombre de personnes</label><input id="f_guests" type="number" inputmode="numeric" min="1" max="500" value="'+esc(f.guests)+'" oninput="upd()"><div class="err" id="e_guests"></div>'+
+  '<label for="f_details">Précisions</label><textarea id="f_details" rows="3" oninput="upd()">'+esc(f.details)+'</textarea>'+
+  '<button id="send" class="gold full" onclick="send()" disabled>Envoyer la demande</button>';
+}
+function hist(){
+  var h=load("gk_history")||[];
+  return '<h2>Mes demandes</h2><p>Demandes préparées depuis ce téléphone. La confirmation se fait sur WhatsApp.</p>'+
+   (h.length?h.map(function(e){return '<div class="hist">'+esc(e)+'</div>'}).join("")+'<button onclick="clearHist()">Effacer l\'historique</button>':'<p>Aucune demande pour le moment.</p>');
+}
+function clearHist(){save("gk_history",[]);render()}
+
+/* ---------- Formulaire ---------- */
+function val(id){var e=document.getElementById(id);return e?e.value:""}
+function validate(f){
+  var digits=f.phone.replace(/\D/g,"").length, g=parseInt(f.guests,10);
+  return {phone:digits>=9&&digits<=15, date:!!f.date&&f.date>=today(), guests:g>=1&&g<=500, name:f.name.trim().length>0};
+}
+function upd(){
+  var f=state.form;
+  f.name=val("f_name");f.phone=val("f_phone");f.date=val("f_date");f.guests=val("f_guests");f.details=val("f_details");
+  var v=validate(f);
+  document.getElementById("e_phone").textContent=(f.phone&&!v.phone)?"Numéro invalide (9 à 15 chiffres).":"";
+  document.getElementById("e_date").textContent=(f.date&&!v.date)?"Date invalide ou passée.":"";
+  document.getElementById("e_guests").textContent=!v.guests?"Entrez un nombre entre 1 et 500.":"";
+  document.getElementById("send").disabled=!(v.name&&v.phone&&v.date&&v.guests);
+}
+function openWa(msg){ location.href="https://wa.me/"+WHATSAPP+"?text="+encodeURIComponent(msg); }
+function send(){
+  var f=state.form,v=validate(f); if(!(v.name&&v.phone&&v.date&&v.guests))return;
+  var msg=["Bonjour Guest Kingakati,","je souhaite faire une demande de réservation.","",
+   "Nom : "+f.name.trim(),"Téléphone : "+f.phone.trim(),"Service : "+state.service,"Date : "+frDate(f.date),"Personnes : "+f.guests,"Précisions : "+f.details.trim()].join("\n");
+  var h=load("gk_history")||[], d=new Date();
+  var stamp=("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear()+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+  h.unshift(stamp+" — "+state.service+" • "+frDate(f.date)+" • "+f.guests+" pers. • "+f.name.trim());
+  save("gk_history",h.slice(0,50));
+  openWa(msg);
+}
+
+/* ---------- Rendu ---------- */
+function render(){
+  var pages={"Accueil":home,"Hôtel":hotel,"Restaurant":resto,"Réserver":booking,"Demandes":hist};
+  document.getElementById("app").innerHTML=pages[state.page]();
+  document.getElementById("nav").innerHTML=NAV.map(function(n){return '<a href="#" class="'+(state.page===n[0]?"on":"")+'" onclick="go(\''+n[0]+'\');return false"><span class="e">'+n[1]+'</span>'+n[0]+'</a>'}).join("");
+  if(state.page==="Réserver")upd();
+}
+/* ---------- Icône (dessinée par le navigateur) ---------- */
+(function(){
+  try{
+    var c=document.createElement("canvas");c.width=c.height=180;var x=c.getContext("2d"),k=180/108;
+    x.fillStyle="#11110E";x.fillRect(0,0,180,180);
+    x.strokeStyle="#E1B85B";x.lineWidth=2.5*k;x.beginPath();x.arc(54*k,54*k,36*k,0,6.2832);x.stroke();
+    x.fillStyle="#E1B85B";
+    [[[37,32],[45,32],[45,76],[37,76]],[[45,54],[61,32],[71,32],[52,58]],[[52,50],[71,76],[61,76],[45,58]]].forEach(function(p){
+      x.beginPath();p.forEach(function(q,i){i?x.lineTo(q[0]*k,q[1]*k):x.moveTo(q[0]*k,q[1]*k)});x.closePath();x.fill()});
+    var u=c.toDataURL("image/png");
+    ["apple-touch-icon","icon"].forEach(function(r){var l=document.createElement("link");l.rel=r;l.href=u;document.head.appendChild(l)});
+  }catch(e){}
+})();
+render(); refresh();
+</script>
+</body>
+</html>
